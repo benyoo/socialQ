@@ -1,7 +1,7 @@
 // People tab — list of all contacts with search and filtering
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import React, { useEffect, useMemo, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
     FlatList,
     Pressable,
@@ -87,9 +87,12 @@ export default function PeopleScreen() {
     const [searchQuery, setSearchQuery] = useState('');
     const [activeFilter, setActiveFilter] = useState<RelationshipType | 'all'>('all');
 
-    useEffect(() => {
-        fetchPeople();
-    }, []);
+    // Re-fetch on tab focus so auto-created people appear immediately
+    useFocusEffect(
+        useCallback(() => {
+            fetchPeople();
+        }, [])
+    );
 
     const filteredPeople = useMemo(() => {
         let result = people;

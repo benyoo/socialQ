@@ -10,6 +10,7 @@ interface PeopleState {
 
     fetchPeople: () => Promise<void>;
     addPerson: (data: PersonFormData) => Promise<Person | null>;
+    quickAddPerson: (name: string) => Promise<Person | null>;
     updatePerson: (id: string, data: Partial<PersonFormData>) => Promise<boolean>;
     deletePerson: (id: string) => Promise<boolean>;
     searchPeople: (query: string) => Person[];
@@ -39,9 +40,37 @@ export const usePeopleStore = create<PeopleState>((set, get) => ({
 
     addPerson: async (formData: PersonFormData) => {
         try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error('Not authenticated');
+
             const { data, error } = await supabase
                 .from('people')
-                .insert(formData)
+                .insert({ ...formData, user_id: user.id })
+                .select()
+                .single();
+
+            if (error) throw error;
+            set((state) => ({ people: [...state.people, data] }));
+            return data;
+        } catch (error) {
+            set({ error: (error as Error).message });
+            return null;
+        }
+    },
+
+    quickAddPerson: async (name: string) => {
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error('Not authenticated');
+
+            const { data, error } = await supabase
+                .from('people')
+                .insert({
+                    name: name.trim(),
+                    relationship_type: 'acquaintance',
+                    closeness_level: 3,
+                    user_id: user.id,
+                })
                 .select()
                 .single();
 

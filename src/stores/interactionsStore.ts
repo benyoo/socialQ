@@ -79,10 +79,14 @@ export const useInteractionsStore = create<InteractionsState>((set, get) => ({
         try {
             const { person_ids, ...interactionData } = formData;
 
+            // Get authenticated user ID for RLS
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error('Not authenticated');
+
             // Insert the interaction
             const { data: interaction, error: interactionError } = await supabase
                 .from('interactions')
-                .insert(interactionData)
+                .insert({ ...interactionData, user_id: user.id })
                 .select()
                 .single();
 
