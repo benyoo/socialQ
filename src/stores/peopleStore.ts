@@ -105,6 +105,11 @@ export const usePeopleStore = create<PeopleState>((set, get) => ({
 
     deletePerson: async (id: string) => {
         try {
+            // Delete dependent rows first — RLS + CASCADE conflict prevents automatic cascade
+            await supabase.from('interaction_people').delete().eq('person_id', id);
+            await supabase.from('reminders').delete().eq('person_id', id);
+            await supabase.from('group_members').delete().eq('person_id', id);
+
             const { error } = await supabase.from('people').delete().eq('id', id);
             if (error) throw error;
             set((state) => ({ people: state.people.filter((p) => p.id !== id) }));

@@ -81,9 +81,56 @@ function extractLocation(text: string, dateSource: string | null): string | null
     return null;
 }
 
-// ─── Title extraction ────────────────────────────────────────
-function extractTitle(text: string): string {
-    // Take the first sentence or first 60 chars, whichever is shorter
+// ─── Type labels for titles ──────────────────────────────────
+const TYPE_TITLE_LABEL: Record<InteractionType, string> = {
+    call: 'Call',
+    text: 'Texted',
+    video: 'Video call',
+    email: 'Emailed',
+    'social-media': 'Social media',
+    'in-person': 'Met',
+};
+
+// ─── Title generation ────────────────────────────────────────
+function generateTitle(
+    text: string,
+    matchedPeople: Person[],
+    unmatchedNames: string[],
+    inferredType: InteractionType | null
+): string {
+    // Collect all person names (first names only for brevity)
+    const allNames = [
+        ...matchedPeople.map((p) => p.name.split(' ')[0]),
+        ...unmatchedNames.map((n) => n.split(' ')[0]),
+    ];
+
+    // If we have people and a type, build a contextual title
+    if (allNames.length > 0 && inferredType) {
+        const label = TYPE_TITLE_LABEL[inferredType];
+        let nameStr: string;
+
+        if (allNames.length === 1) {
+            nameStr = allNames[0];
+        } else if (allNames.length === 2) {
+            nameStr = `${allNames[0]} and ${allNames[1]}`;
+        } else {
+            nameStr = `${allNames[0]} and ${allNames.length - 1} others`;
+        }
+
+        const title = `${label} with ${nameStr}`;
+        return title.length <= 60 ? title : title.substring(0, 57) + '...';
+    }
+
+    // If we have people but no type
+    if (allNames.length > 0) {
+        const nameStr = allNames.length <= 2
+            ? allNames.join(' and ')
+            : `${allNames[0]} and ${allNames.length - 1} others`;
+        const title = `Interaction with ${nameStr}`;
+        return title.length <= 60 ? title : title.substring(0, 57) + '...';
+    }
+
+    // Fallback: first sentence or 60 chars
     const firstSentence = text.split(/[.!?\n]/)[0].trim();
     if (firstSentence.length <= 60) return firstSentence;
     return firstSentence.substring(0, 57) + '...';
@@ -221,7 +268,7 @@ export function parseLogEntry(
 
     return {
         rawText: text,
-        title: extractTitle(trimmed),
+        title: generateTitle(trimmed, matchedPeople, filteredUnmatched, inferredType),
         notes: trimmed,
         matchedPeople,
         unmatchedNames: filteredUnmatched,

@@ -156,6 +156,10 @@ export const useInteractionsStore = create<InteractionsState>((set, get) => ({
 
     deleteInteraction: async (id: string) => {
         try {
+            // Delete join rows first — RLS + CASCADE conflict prevents automatic cascade
+            await supabase.from('interaction_people').delete().eq('interaction_id', id);
+            await supabase.from('tags').delete().eq('interaction_id', id);
+
             const { error } = await supabase.from('interactions').delete().eq('id', id);
             if (error) throw error;
             set((state) => ({

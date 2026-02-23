@@ -4,6 +4,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
     Alert,
+    Platform,
     Pressable,
     ScrollView,
     StyleSheet,
@@ -49,21 +50,34 @@ export default function PersonDetailScreen() {
     const relMeta = RELATIONSHIP_TYPE_META[person.relationship_type];
 
     const handleDelete = () => {
-        Alert.alert(
-            'Delete Contact',
-            `Are you sure you want to delete ${person.name}? This will also remove their interaction history.`,
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Delete',
-                    style: 'destructive',
-                    onPress: async () => {
-                        await deletePerson(person.id);
-                        router.back();
-                    },
-                },
-            ]
-        );
+        const doDelete = async () => {
+            const success = await deletePerson(person.id);
+            if (success) {
+                router.back();
+            } else {
+                const msg = usePeopleStore.getState().error || 'Delete failed';
+                if (Platform.OS === 'web') {
+                    window.alert(msg);
+                } else {
+                    Alert.alert('Error', msg);
+                }
+            }
+        };
+
+        if (Platform.OS === 'web') {
+            if (window.confirm(`Are you sure you want to delete ${person.name}? This will also remove their interaction history.`)) {
+                doDelete();
+            }
+        } else {
+            Alert.alert(
+                'Delete Contact',
+                `Are you sure you want to delete ${person.name}? This will also remove their interaction history.`,
+                [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Delete', style: 'destructive', onPress: doDelete },
+                ]
+            );
+        }
     };
 
     return (
@@ -121,6 +135,15 @@ export default function PersonDetailScreen() {
                         </View>
                     )}
                 </Card>
+
+                {/* Edit button */}
+                <Pressable
+                    style={styles.editButton}
+                    onPress={() => router.push(`/person/edit?id=${person.id}` as any)}
+                >
+                    <Ionicons name="create-outline" size={18} color={Colors.primary} />
+                    <Text style={styles.editButtonText}>Edit Contact</Text>
+                </Pressable>
 
                 {/* Interaction history */}
                 <Text style={styles.sectionTitle}>
@@ -322,6 +345,23 @@ const styles = StyleSheet.create({
     noInteractionsText: {
         color: Colors.textTertiary,
         fontSize: FontSize.md,
+    },
+    editButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: Spacing.sm,
+        paddingVertical: Spacing.md,
+        marginBottom: Spacing.xl,
+        backgroundColor: `${Colors.primary}10`,
+        borderRadius: BorderRadius.md,
+        borderWidth: 1,
+        borderColor: `${Colors.primary}30`,
+    },
+    editButtonText: {
+        color: Colors.primary,
+        fontSize: FontSize.md,
+        fontWeight: FontWeight.medium,
     },
     deleteButton: {
         flexDirection: 'row',

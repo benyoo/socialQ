@@ -4,6 +4,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
 import {
     Alert,
+    Platform,
     Pressable,
     ScrollView,
     StyleSheet,
@@ -70,21 +71,34 @@ export default function InteractionDetailScreen() {
     const qualityLabel = QUALITY_LABELS[interaction.quality];
 
     const handleDelete = () => {
-        Alert.alert(
-            'Delete Interaction',
-            'Are you sure you want to delete this interaction? This cannot be undone.',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Delete',
-                    style: 'destructive',
-                    onPress: async () => {
-                        await deleteInteraction(interaction.id);
-                        router.back();
-                    },
-                },
-            ]
-        );
+        const doDelete = async () => {
+            const success = await deleteInteraction(interaction.id);
+            if (success) {
+                router.back();
+            } else {
+                const msg = useInteractionsStore.getState().error || 'Delete failed';
+                if (Platform.OS === 'web') {
+                    window.alert(msg);
+                } else {
+                    Alert.alert('Error', msg);
+                }
+            }
+        };
+
+        if (Platform.OS === 'web') {
+            if (window.confirm('Are you sure you want to delete this interaction? This cannot be undone.')) {
+                doDelete();
+            }
+        } else {
+            Alert.alert(
+                'Delete Interaction',
+                'Are you sure you want to delete this interaction? This cannot be undone.',
+                [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Delete', style: 'destructive', onPress: doDelete },
+                ]
+            );
+        }
     };
 
     return (

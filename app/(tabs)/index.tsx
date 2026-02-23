@@ -1,20 +1,45 @@
 // Timeline — main dashboard showing recent interactions
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   FlatList,
   Pressable,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { Avatar, Badge, Card } from '../../src/components/ui';
 import { INTERACTION_TYPE_META } from '../../src/constants';
 import { useInteractionsStore, usePeopleStore } from '../../src/stores';
 import { BorderRadius, Colors, FontSize, FontWeight, Shadow, Spacing } from '../../src/theme/tokens';
-import type { InteractionWithPeople } from '../../src/types';
+import type { InteractionType, InteractionWithPeople } from '../../src/types';
+
+// ─── Filter types ────────────────────────────────────────
+
+type DateRange = 'all' | 'today' | 'week' | 'month';
+
+const DATE_RANGE_OPTIONS: { value: DateRange; label: string }[] = [
+  { value: 'all', label: 'All Time' },
+  { value: 'today', label: 'Today' },
+  { value: 'week', label: 'This Week' },
+  { value: 'month', label: 'This Month' },
+];
+
+const TYPE_FILTER_OPTIONS: (InteractionType | 'all')[] = [
+  'all',
+  'in-person',
+  'call',
+  'text',
+  'video',
+  'social-media',
+  'email',
+];
+
+// ─── Helpers ────────────────────────────────────────────
 
 function formatRelativeTime(dateStr: string): string {
   const date = new Date(dateStr);
@@ -30,6 +55,31 @@ function formatRelativeTime(dateStr: string): string {
   if (diffDays < 7) return `${diffDays}d ago`;
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
+
+function getDateRangeStart(range: DateRange): Date | null {
+  if (range === 'all') return null;
+
+  const now = new Date();
+  switch (range) {
+    case 'today': {
+      const start = new Date(now);
+      start.setHours(0, 0, 0, 0);
+      return start;
+    }
+    case 'week': {
+      const start = new Date(now);
+      start.setDate(start.getDate() - 7);
+      return start;
+    }
+    case 'month': {
+      const start = new Date(now);
+      start.setMonth(start.getMonth() - 1);
+      return start;
+    }
+  }
+}
+
+// ─── InteractionCard ────────────────────────────────────
 
 function InteractionCard({ interaction }: { interaction: InteractionWithPeople }) {
   const router = useRouter();
@@ -95,20 +145,143 @@ function InteractionCard({ interaction }: { interaction: InteractionWithPeople }
   );
 }
 
+// ─── TimelineScreen ─────────────────────────────────────
+
 export default function TimelineScreen() {
   const router = useRouter();
   const { interactions, isLoading, fetchInteractions } = useInteractionsStore();
   const { fetchPeople } = usePeopleStore();
+
+  // Filter state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeType, setActiveType] = useState<InteractionType | 'all'>('all');
+  const [activeDateRange, setActiveDateRange] = useState<DateRange>('all');
 
   useEffect(() => {
     fetchInteractions();
     fetchPeople();
   }, []);
 
+  // Filtered interactions
+  const filteredInteractions = useMemo(() => {
+    let result = interactions;
+
+    // Search filter
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(
+        (i) =>
+          i.title.toLowerCase().includes(q) ||
+          i.notes?.toLowerCase().includes(q) ||
+          i.people.some((p) => p.name.toLowerCase().includes(q))
+      );
+    }
+
+    // Type filter
+    if (activeType !== 'all') {
+      result = result.filter((i) => i.type === activeType);
+    }
+
+    // Date range filter
+    const rangeStart = getDateRangeStart(activeDateRange);
+    if (rangeStart) {
+      result = result.filter(
+        (i) => new Date(i.occurred_at) >= rangeStart
+      );
+    }
+
+    return result;
+  }, [interactions, searchQuery, activeType, activeDateRange]);
+
+  const hasActiveFilters = searchQuery || activeType !== 'all' || activeDateRange !== 'all';
+
   return (
     <View style={styles.container}>
+      {/* Search bar */}
+      <View style={styles.searchContainer}>
+        <Ionicons name="search" size={18} color={Colors.textTertiary} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search interactions..."
+          placeholderTextColor={Colors.textTertiary}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          selectionColor={Colors.primary}
+        />
+        {searchQuery.length > 0 && (
+          <Pressable onPress={() => setSearchQuery('')}>
+            <Ionicons name="close-circle" size={18} color={Colors.textTertiary} />
+          </Pressable>
+        )}
+      </View>
+
+      {/* Type filter chips */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={{ flexGrow: 0 }}
+        contentContainerStyle={styles.filterList}
+      >
+        {TYPE_FILTER_OPTIONS.map((item) => {
+          const isActive = activeType === item;
+          const label = item === 'all' ? 'All' : INTERACTION_TYPE_META[item].label;
+          const icon = item === 'all' ? 'apps' : INTERACTION_TYPE_META[item].icon;
+          const color = item === 'all' ? Colors.primary : INTERACTION_TYPE_META[item].color;
+          return (
+            <Pressable
+              key={item}
+              style={[styles.filterChip, isActive && { backgroundColor: `${color}20`, borderColor: color }]}
+              onPress={() => setActiveType(item)}
+            >
+              <Ionicons
+                name={icon as any}
+                size={13}
+                color={isActive ? color : Colors.textTertiary}
+              />
+              <Text
+                style={[
+                  styles.filterChipText,
+                  isActive && { color },
+                ]}
+              >
+                {label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+
+      {/* Date range presets */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={{ flexGrow: 0 }}
+        contentContainerStyle={styles.dateFilterList}
+      >
+        {DATE_RANGE_OPTIONS.map((item) => {
+          const isActive = activeDateRange === item.value;
+          return (
+            <Pressable
+              key={item.value}
+              style={[styles.dateChip, isActive && styles.dateChipActive]}
+              onPress={() => setActiveDateRange(item.value)}
+            >
+              <Text
+                style={[
+                  styles.dateChipText,
+                  isActive && styles.dateChipTextActive,
+                ]}
+              >
+                {item.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+
+      {/* Interactions list */}
       <FlatList
-        data={interactions}
+        data={filteredInteractions}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <InteractionCard interaction={item} />}
         contentContainerStyle={styles.listContent}
@@ -122,11 +295,31 @@ export default function TimelineScreen() {
         }
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Ionicons name="chatbubbles-outline" size={64} color={Colors.textTertiary} />
-            <Text style={styles.emptyTitle}>No interactions yet</Text>
-            <Text style={styles.emptySubtitle}>
-              Tap the + button to log your first social interaction
+            <Ionicons
+              name={hasActiveFilters ? 'funnel-outline' : 'chatbubbles-outline'}
+              size={64}
+              color={Colors.textTertiary}
+            />
+            <Text style={styles.emptyTitle}>
+              {hasActiveFilters ? 'No matching interactions' : 'No interactions yet'}
             </Text>
+            <Text style={styles.emptySubtitle}>
+              {hasActiveFilters
+                ? 'Try adjusting your search or filters'
+                : 'Tap the + button to log your first social interaction'}
+            </Text>
+            {hasActiveFilters && (
+              <Pressable
+                style={styles.clearFiltersButton}
+                onPress={() => {
+                  setSearchQuery('');
+                  setActiveType('all');
+                  setActiveDateRange('all');
+                }}
+              >
+                <Text style={styles.clearFiltersText}>Clear Filters</Text>
+              </Pressable>
+            )}
           </View>
         }
       />
@@ -150,8 +343,81 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
+  // Search
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.md,
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.surfaceBorder,
+  },
+  searchInput: {
+    flex: 1,
+    color: Colors.textPrimary,
+    fontSize: FontSize.md,
+    marginLeft: Spacing.sm,
+    paddingVertical: Spacing.xs,
+  },
+  // Type filter chips
+  filterList: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
+    paddingBottom: 2,
+    gap: Spacing.sm,
+  },
+  filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 28,
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.surfaceBorder,
+  },
+  filterChipText: {
+    color: Colors.textSecondary,
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.medium,
+  },
+  // Date range chips
+  dateFilterList: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: 2,
+    paddingBottom: Spacing.sm,
+    gap: Spacing.sm,
+  },
+  dateChip: {
+    height: 28,
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.surfaceBorder,
+  },
+  dateChipActive: {
+    backgroundColor: `${Colors.accent}20`,
+    borderColor: Colors.accent,
+  },
+  dateChipText: {
+    color: Colors.textSecondary,
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.medium,
+  },
+  dateChipTextActive: {
+    color: Colors.accent,
+  },
+  // List
   listContent: {
     padding: Spacing.lg,
+    paddingTop: 0,
     paddingBottom: 100,
   },
   interactionCard: {
@@ -228,10 +494,11 @@ const styles = StyleSheet.create({
   qualityDotActive: {
     backgroundColor: Colors.primary,
   },
+  // Empty state
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 120,
+    paddingTop: 80,
     paddingHorizontal: Spacing.xxxl,
   },
   emptyTitle: {
@@ -247,6 +514,19 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
     lineHeight: 22,
   },
+  clearFiltersButton: {
+    marginTop: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: BorderRadius.full,
+    backgroundColor: `${Colors.primary}15`,
+  },
+  clearFiltersText: {
+    color: Colors.primary,
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.medium,
+  },
+  // FAB
   fab: {
     position: 'absolute',
     bottom: 28,

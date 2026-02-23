@@ -1,10 +1,13 @@
 // Insights tab — analytics and relationship health overview
 import { Ionicons } from '@expo/vector-icons';
-import React, { useMemo } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Card } from '../../src/components/ui';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useMemo } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Avatar, Card } from '../../src/components/ui';
+import type { WeeklyDataPoint } from '../../src/components/WeeklyChart';
+import { WeeklyChart } from '../../src/components/WeeklyChart';
 import { INTERACTION_TYPE_META } from '../../src/constants';
-import { useInteractionsStore, usePeopleStore } from '../../src/stores';
+import { useInteractionsStore, usePeopleStore, useRemindersStore } from '../../src/stores';
 import { BorderRadius, Colors, FontSize, FontWeight, Spacing } from '../../src/theme/tokens';
 import type { InteractionType } from '../../src/types';
 
@@ -31,8 +34,14 @@ function StatCard({
 }
 
 export default function InsightsScreen() {
+    const router = useRouter();
     const { people } = usePeopleStore();
     const { interactions } = useInteractionsStore();
+    const { reminders, fetchReminders, getDueSoon } = useRemindersStore();
+
+    useEffect(() => {
+        fetchReminders();
+    }, []);
 
     const stats = useMemo(() => {
         const totalPeople = people.length;
@@ -85,6 +94,33 @@ export default function InsightsScreen() {
             needsAttention,
         };
     }, [people, interactions]);
+
+    // ── Weekly trend data (last 8 weeks) ──────────────────
+    const weeklyData: WeeklyDataPoint[] = useMemo(() => {
+        const weeks: WeeklyDataPoint[] = [];
+        const now = new Date();
+
+        for (let w = 7; w >= 0; w--) {
+            const weekStart = new Date(now);
+            weekStart.setDate(weekStart.getDate() - w * 7);
+            weekStart.setHours(0, 0, 0, 0);
+
+            const weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekEnd.getDate() + 7);
+
+            const count = interactions.filter((i) => {
+                const d = new Date(i.occurred_at);
+                return d >= weekStart && d < weekEnd;
+            }).length;
+
+            const label = weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            weeks.push({ label, count });
+        }
+        return weeks;
+    }, [interactions]);
+
+    // ── Due-soon reminders ────────────────────────────────
+    const dueSoon = useMemo(() => getDueSoon(7), [reminders]);
 
     return (
         <ScrollView
@@ -164,6 +200,53 @@ export default function InsightsScreen() {
                         </Text>
                     </Card>
                 </>
+            )}
+
+            {/* Weekly Activity Chart */}
+            <Text style={styles.sectionTitle}>Weekly Activity</Text>
+            <Card>
+                <WeeklyChart data={weeklyData} barColor={Colors.primary} />
+            </Card>
+
+            {/* Due Soon Reminders */}
+            <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Due Soon</Text>
+                <Pressable onPress={() => router.push('/reminders' as any)}>
+                    <Text style={styles.viewAllLink}>View All</Text>
+                </Pressable>
+            </View>
+            {dueSoon.length > 0 ? (
+                dueSoon.slice(0, 3).map((reminder) => {
+                    const dueDate = new Date(reminder.next_due_at);
+                    const diffDays = Math.floor((dueDate.getTime() - Date.now()) / 86_400_000);
+                    const dueLabel =
+                        diffDays < 0 ? `${Math.abs(diffDays)}d overdue`
+                            : diffDays === 0 ? 'Today'
+                                : diffDays === 1 ? 'Tomorrow'
+                                    : `In ${diffDays}d`;
+                    const dueColor = diffDays < 0 ? Colors.error : diffDays <= 1 ? Colors.warning : Colors.accent;
+
+                    return (
+                        <Card key={reminder.id} style={styles.reminderCard}>
+                            <View style={styles.reminderRow}>
+                                {reminder.person && (
+                                    <Avatar name={reminder.person.name} uri={reminder.person.avatar_url} size={32} />
+                                )}
+                                <View style={styles.reminderContent}>
+                                    <Text style={styles.reminderMessage}>{reminder.message}</Text>
+                                    {reminder.person && (
+                                        <Text style={styles.reminderPerson}>{reminder.person.name}</Text>
+                                    )}
+                                </View>
+                                <Text style={[styles.reminderDue, { color: dueColor }]}>{dueLabel}</Text>
+                            </View>
+                        </Card>
+                    );
+                })
+            ) : (
+                <Card>
+                    <Text style={styles.noReminders}>No upcoming reminders</Text>
+                </Card>
             )}
         </ScrollView>
     );
@@ -262,5 +345,48 @@ const styles = StyleSheet.create({
         color: Colors.textSecondary,
         fontSize: FontSize.sm,
         flex: 1,
+    },
+    // Due-soon & chart styles
+    sectionHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    viewAllLink: {
+        color: Colors.primary,
+        fontSize: FontSize.sm,
+        fontWeight: FontWeight.medium,
+    },
+    reminderCard: {
+        marginBottom: Spacing.sm,
+    },
+    reminderRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    reminderContent: {
+        flex: 1,
+        marginLeft: Spacing.md,
+    },
+    reminderMessage: {
+        color: Colors.textPrimary,
+        fontSize: FontSize.md,
+        fontWeight: FontWeight.medium,
+    },
+    reminderPerson: {
+        color: Colors.textSecondary,
+        fontSize: FontSize.sm,
+        marginTop: 2,
+    },
+    reminderDue: {
+        fontSize: FontSize.xs,
+        fontWeight: FontWeight.semibold,
+        marginLeft: Spacing.sm,
+    },
+    noReminders: {
+        color: Colors.textTertiary,
+        fontSize: FontSize.sm,
+        textAlign: 'center',
+        paddingVertical: Spacing.lg,
     },
 });

@@ -5,6 +5,7 @@ import React, { useCallback, useMemo, useState } from 'react';
 import {
     FlatList,
     Pressable,
+    ScrollView,
     StyleSheet,
     Text,
     TextInput,
@@ -131,17 +132,18 @@ export default function PeopleScreen() {
             </View>
 
             {/* Filter chips */}
-            <FlatList
+            <ScrollView
                 horizontal
-                data={FILTER_OPTIONS}
-                keyExtractor={(item) => item}
                 showsHorizontalScrollIndicator={false}
+                style={{ flexGrow: 0 }}
                 contentContainerStyle={styles.filterList}
-                renderItem={({ item }) => {
+            >
+                {FILTER_OPTIONS.map((item) => {
                     const isActive = activeFilter === item;
                     const label = item === 'all' ? 'All' : RELATIONSHIP_TYPE_META[item].label;
                     return (
                         <Pressable
+                            key={item}
                             style={[styles.filterChip, isActive && styles.filterChipActive]}
                             onPress={() => setActiveFilter(item)}
                         >
@@ -155,8 +157,8 @@ export default function PeopleScreen() {
                             </Text>
                         </Pressable>
                     );
-                }}
-            />
+                })}
+            </ScrollView>
 
             {/* People list */}
             <FlatList
@@ -216,11 +218,12 @@ const styles = StyleSheet.create({
     },
     filterList: {
         paddingHorizontal: Spacing.lg,
-        paddingVertical: Spacing.md,
+        paddingVertical: Spacing.sm,
         gap: Spacing.sm,
     },
     filterChip: {
-        paddingVertical: Spacing.xs + 2,
+        height: 28,
+        justifyContent: 'center',
         paddingHorizontal: Spacing.md,
         borderRadius: BorderRadius.full,
         backgroundColor: Colors.surface,

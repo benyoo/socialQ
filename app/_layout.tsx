@@ -99,6 +99,27 @@ export default function RootLayout() {
               presentation: 'modal',
             }}
           />
+          <Stack.Screen
+            name="person/edit"
+            options={{
+              title: 'Edit Person',
+              presentation: 'modal',
+            }}
+          />
+          <Stack.Screen
+            name="reminders"
+            options={{
+              title: 'Reminders',
+              presentation: 'card',
+            }}
+          />
+          <Stack.Screen
+            name="reminder/new"
+            options={{
+              title: 'New Reminder',
+              presentation: 'modal',
+            }}
+          />
         </Stack>
       </AuthGuard>
     </QueryClientProvider>
