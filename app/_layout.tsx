@@ -120,6 +120,13 @@ export default function RootLayout() {
               presentation: 'modal',
             }}
           />
+          <Stack.Screen
+            name="settings"
+            options={{
+              title: 'Settings',
+              presentation: 'card',
+            }}
+          />
         </Stack>
       </AuthGuard>
     </QueryClientProvider>

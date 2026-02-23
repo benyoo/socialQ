@@ -1,10 +1,13 @@
 // Tab layout — bottom tab navigation for main screens
 import { Ionicons } from '@expo/vector-icons';
-import { Tabs } from 'expo-router';
+import { Tabs, useRouter } from 'expo-router';
 import React from 'react';
-import { Colors, FontSize } from '../../src/theme/tokens';
+import { Pressable } from 'react-native';
+import { Colors, FontSize, Spacing } from '../../src/theme/tokens';
 
 export default function TabLayout() {
+  const router = useRouter();
+
   return (
     <Tabs
       screenOptions={{
@@ -31,6 +34,14 @@ export default function TabLayout() {
           fontSize: FontSize.xl,
         },
         headerShadowVisible: false,
+        headerRight: () => (
+          <Pressable
+            onPress={() => router.push('/settings' as any)}
+            style={{ marginRight: Spacing.lg }}
+          >
+            <Ionicons name="settings-outline" size={22} color={Colors.textSecondary} />
+          </Pressable>
+        ),
       }}
     >
       <Tabs.Screen
