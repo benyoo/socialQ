@@ -93,6 +93,13 @@ export default function RootLayout() {
             }}
           />
           <Stack.Screen
+            name="interaction/edit"
+            options={{
+              title: 'Edit Interaction',
+              presentation: 'modal',
+            }}
+          />
+          <Stack.Screen
             name="person/new"
             options={{
               title: 'Add Person',

@@ -1,7 +1,7 @@
 // Log Parser — extracts people, dates, interaction type, and location from natural language
 import * as chrono from 'chrono-node';
 import type { InteractionType, Person } from '../types';
-import type { ParsedLogEntry } from '../types/parsed';
+import type { AmbiguousMatch, ParsedLogEntry } from '../types/parsed';
 
 // ─── Stopwords: common words that look like names but aren't ──
 const STOPWORDS = new Set([
@@ -149,6 +149,7 @@ export function parseLogEntry(
             notes: '',
             matchedPeople: [],
             unmatchedNames: [],
+            ambiguousMatches: [],
             occurredAt: new Date(),
             dateSource: null,
             inferredType: null,
@@ -258,13 +259,46 @@ export function parseLogEntry(
         }
     }
 
-    // ── 5. Extract location ──
+    // ── 5. First-name matching pass ──
+    // For unmatched names, check if they match the first name of any existing contact
+    const ambiguousMatches: AmbiguousMatch[] = [];
+    const resolvedFromFirstName: string[] = [];
+
+    for (const name of unmatchedNames) {
+        // Only attempt first-name matching for single words (not full names)
+        if (name.includes(' ')) continue;
+
+        const candidates = existingPeople.filter((p) => {
+            if (matchedPeopleIds.has(p.id)) return false;
+            const firstName = p.name.split(/\s+/)[0];
+            return firstName.toLowerCase() === name.toLowerCase();
+        });
+
+        if (candidates.length === 1) {
+            // Unique match → auto-resolve
+            matchedPeople.push(candidates[0]);
+            matchedPeopleIds.add(candidates[0].id);
+            matchedNameStrings.add(name.toLowerCase());
+            resolvedFromFirstName.push(name);
+        } else if (candidates.length > 1) {
+            // Multiple matches → let user disambiguate
+            ambiguousMatches.push({ name, candidates });
+            resolvedFromFirstName.push(name);
+        }
+    }
+
+    // Remove first-name-resolved entries from unmatchedNames
+    const postFirstNameUnmatched = unmatchedNames.filter(
+        (n) => !resolvedFromFirstName.includes(n)
+    );
+
+    // ── 6. Extract location ──
     const location = extractLocation(trimmed, dateSource);
 
     // Remove location from unmatched names if it was picked up
     const filteredUnmatched = location
-        ? unmatchedNames.filter((n) => !location.includes(n))
-        : unmatchedNames;
+        ? postFirstNameUnmatched.filter((n) => !location.includes(n))
+        : postFirstNameUnmatched;
 
     return {
         rawText: text,
@@ -272,6 +306,7 @@ export function parseLogEntry(
         notes: trimmed,
         matchedPeople,
         unmatchedNames: filteredUnmatched,
+        ambiguousMatches,
         occurredAt,
         dateSource,
         inferredType,

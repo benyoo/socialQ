@@ -11,6 +11,7 @@ import {
     TextInput,
     View,
 } from 'react-native';
+import { PeoplePicker } from '../../src/components/PeoplePicker';
 import { Avatar } from '../../src/components/ui';
 import { INTERACTION_TYPE_META, QUALITY_LABELS } from '../../src/constants';
 import { parseLogEntry } from '../../src/services/logParser';
@@ -33,6 +34,7 @@ export default function NewInteractionScreen() {
     const [quality, setQuality] = useState<QualityRating>(3);
     const [typeOverride, setTypeOverride] = useState<InteractionType | null>(null);
     const [addedPeopleIds, setAddedPeopleIds] = useState<string[]>([]);
+    const [resolvedAmbiguous, setResolvedAmbiguous] = useState<Record<string, string>>({}); // name -> chosen person id
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Parse the text input in real-time
@@ -44,12 +46,13 @@ export default function NewInteractionScreen() {
     // Effective type: user override > parser inference > default
     const effectiveType = typeOverride ?? parsed.inferredType ?? 'in-person';
 
-    // All person IDs: matched from text + manually added unmatched names
+    // All person IDs: matched from text + manually added + resolved ambiguous
     const allPersonIds = useMemo(() => {
         const ids = new Set(parsed.matchedPeople.map((p) => p.id));
         addedPeopleIds.forEach((id) => ids.add(id));
+        Object.values(resolvedAmbiguous).forEach((id) => ids.add(id));
         return [...ids];
-    }, [parsed.matchedPeople, addedPeopleIds]);
+    }, [parsed.matchedPeople, addedPeopleIds, resolvedAmbiguous]);
 
     const handleAddUnmatchedPerson = useCallback(async (name: string) => {
         const person = await quickAddPerson(name);
@@ -60,6 +63,10 @@ export default function NewInteractionScreen() {
 
     const handleRemovePerson = useCallback((personId: string) => {
         setAddedPeopleIds((prev) => prev.filter((id) => id !== personId));
+    }, []);
+
+    const handleResolveAmbiguous = useCallback((firstName: string, personId: string) => {
+        setResolvedAmbiguous((prev) => ({ ...prev, [firstName]: personId }));
     }, []);
 
     const handleSubmit = async () => {
@@ -188,6 +195,47 @@ export default function NewInteractionScreen() {
                         </View>
                     )}
 
+                    {/* Ambiguous first-name matches — ask user to pick */}
+                    {parsed.ambiguousMatches.length > 0 && parsed.ambiguousMatches.map((match) => {
+                        const chosen = resolvedAmbiguous[match.name];
+                        return (
+                            <View key={match.name} style={styles.ambiguousSection}>
+                                <View style={styles.extractionRow}>
+                                    <Ionicons name="help-circle" size={16} color={Colors.warning} />
+                                    <Text style={styles.extractionText}>
+                                        Which <Text style={{ fontWeight: '700' }}>{match.name}</Text>?
+                                    </Text>
+                                </View>
+                                <View style={styles.chipRow}>
+                                    {match.candidates.map((person) => {
+                                        const isChosen = chosen === person.id;
+                                        return (
+                                            <Pressable
+                                                key={person.id}
+                                                style={[
+                                                    styles.ambiguousChip,
+                                                    isChosen && styles.ambiguousChipSelected,
+                                                ]}
+                                                onPress={() => handleResolveAmbiguous(match.name, person.id)}
+                                            >
+                                                <Avatar name={person.name} size={20} />
+                                                <Text style={[
+                                                    styles.ambiguousChipText,
+                                                    isChosen && styles.ambiguousChipTextSelected,
+                                                ]}>
+                                                    {person.name}
+                                                </Text>
+                                                {isChosen && (
+                                                    <Ionicons name="checkmark-circle" size={14} color={Colors.success} />
+                                                )}
+                                            </Pressable>
+                                        );
+                                    })}
+                                </View>
+                            </View>
+                        );
+                    })}
+
                     {/* Parsed date */}
                     {parsed.dateSource && (
                         <View style={styles.extractionRow}>
@@ -229,6 +277,23 @@ export default function NewInteractionScreen() {
                         </View>
                     )}
                 </View>
+            )}
+
+            {/* Manual people picker */}
+            {hasContent && (
+                <>
+                    <Text style={styles.sectionLabel}>People</Text>
+                    <PeoplePicker
+                        selectedIds={allPersonIds}
+                        onToggle={(personId) => {
+                            if (addedPeopleIds.includes(personId)) {
+                                handleRemovePerson(personId);
+                            } else {
+                                setAddedPeopleIds((prev) => [...prev, personId]);
+                            }
+                        }}
+                    />
+                </>
             )}
 
             {/* Interaction type — compact pills */}
@@ -468,5 +533,32 @@ const styles = StyleSheet.create({
         color: Colors.white,
         fontSize: FontSize.lg,
         fontWeight: FontWeight.semibold,
+    },
+    ambiguousSection: {
+        marginTop: Spacing.xs,
+        marginLeft: Spacing.xl,
+    },
+    ambiguousChip: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.xs,
+        backgroundColor: `${Colors.warning}12`,
+        borderRadius: BorderRadius.full,
+        paddingVertical: Spacing.xxs + 1,
+        paddingHorizontal: Spacing.sm,
+        borderWidth: 1,
+        borderColor: `${Colors.warning}30`,
+    },
+    ambiguousChipSelected: {
+        backgroundColor: `${Colors.success}15`,
+        borderColor: `${Colors.success}50`,
+    },
+    ambiguousChipText: {
+        color: Colors.warning,
+        fontSize: FontSize.sm,
+        fontWeight: FontWeight.medium,
+    },
+    ambiguousChipTextSelected: {
+        color: Colors.success,
     },
 });

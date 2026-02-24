@@ -207,7 +207,15 @@ export default function InteractionDetailScreen() {
                     </View>
                 </Card>
 
-                {/* Delete action */}
+                {/* Actions */}
+                <Pressable
+                    style={styles.editButton}
+                    onPress={() => router.push(`/interaction/edit?id=${interaction.id}` as any)}
+                >
+                    <Ionicons name="create-outline" size={18} color={Colors.primary} />
+                    <Text style={styles.editButtonText}>Edit Interaction</Text>
+                </Pressable>
+
                 <Pressable style={styles.deleteButton} onPress={handleDelete}>
                     <Ionicons name="trash-outline" size={18} color={Colors.error} />
                     <Text style={styles.deleteButtonText}>Delete Interaction</Text>
@@ -339,6 +347,24 @@ const styles = StyleSheet.create({
         fontSize: FontSize.sm,
     },
 
+    // Edit
+    editButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: Spacing.sm,
+        paddingVertical: Spacing.lg,
+        marginTop: Spacing.xl,
+        borderRadius: BorderRadius.md,
+        borderWidth: 1,
+        borderColor: `${Colors.primary}30`,
+        backgroundColor: `${Colors.primary}08`,
+    },
+    editButtonText: {
+        color: Colors.primary,
+        fontSize: FontSize.md,
+        fontWeight: FontWeight.medium,
+    },
     // Delete
     deleteButton: {
         flexDirection: 'row',
