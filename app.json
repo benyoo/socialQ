@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "SocialQ",
-    "slug": "SocialQ",
+    "slug": "socialq",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -14,9 +14,11 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.nyoostudio.socialq"
     },
     "android": {
+      "package": "com.nyoostudio.socialq",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -36,6 +38,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "0cc547d1-010c-464c-bb22-3ef9f922ae01"
+      }
+    },
+    "owner": "nyoo-studio"
   }
 }
