@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { RelationshipGraph } from '../../src/components/graph/RelationshipGraph';
 import { Avatar, Card } from '../../src/components/ui';
 import type { WeeklyDataPoint } from '../../src/components/WeeklyChart';
 import { WeeklyChart } from '../../src/components/WeeklyChart';
@@ -206,6 +207,12 @@ export default function InsightsScreen() {
             <Text style={styles.sectionTitle}>Weekly Activity</Text>
             <Card>
                 <WeeklyChart data={weeklyData} barColor={Colors.primary} />
+            </Card>
+
+            {/* Relationship Network Graph */}
+            <Text style={styles.sectionTitle}>Relationship Network</Text>
+            <Card style={{ padding: 0, overflow: 'hidden' }}>
+                <RelationshipGraph />
             </Card>
 
             {/* Due Soon Reminders */}
