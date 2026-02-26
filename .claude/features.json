@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "installedBy": "claude-code-mastery-starter-kit",
+  "language": "nodejs",
+  "features": {
+    "postgres": {
+      "version": "1.0.0",
+      "installedAt": "2026-02-26T19:11:37.840315+00:00",
+      "updatedAt": null,
+      "files": [
+        "src/core/db/sql.ts"
+      ]
+    },
+    "vitest": {
+      "version": "1.0.0",
+      "installedAt": "2026-02-26T19:11:37.841428+00:00",
+      "updatedAt": null,
+      "files": [
+        "vitest.config.ts"
+      ]
+    },
+    "playwright": {
+      "version": "1.0.0",
+      "installedAt": "2026-02-26T19:11:37.841438+00:00",
+      "updatedAt": null,
+      "files": [
+        "playwright.config.ts"
+      ]
+    }
+  }
+}
