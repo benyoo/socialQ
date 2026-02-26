@@ -180,7 +180,7 @@ export default function PersonDetailScreen() {
                                                 key={level}
                                                 style={[
                                                     styles.dot,
-                                                    level <= interaction.quality && styles.dotActive,
+                                                    level <= interaction.sentiment && styles.dotActive,
                                                 ]}
                                             />
                                         ))}

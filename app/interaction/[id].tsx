@@ -14,7 +14,7 @@ import {
 import { Avatar, Badge, Card } from '../../src/components/ui';
 import {
     INTERACTION_TYPE_META,
-    QUALITY_LABELS,
+    SENTIMENT_LABELS,
 } from '../../src/constants';
 import { useInteractionsStore } from '../../src/stores';
 import { BorderRadius, Colors, FontSize, FontWeight, Spacing } from '../../src/theme/tokens';
@@ -68,7 +68,7 @@ export default function InteractionDetailScreen() {
     }
 
     const meta = INTERACTION_TYPE_META[interaction.type];
-    const qualityLabel = QUALITY_LABELS[interaction.quality];
+    const qualityLabel = SENTIMENT_LABELS[interaction.sentiment];
 
     const handleDelete = () => {
         const doDelete = async () => {
@@ -188,7 +188,7 @@ export default function InteractionDetailScreen() {
                         </View>
                     )}
 
-                    {/* Quality */}
+                    {/* Sentiment */}
                     <View style={styles.detailRow}>
                         <Ionicons name="star-outline" size={18} color={Colors.textTertiary} />
                         <View style={styles.qualityContainer}>
@@ -196,9 +196,9 @@ export default function InteractionDetailScreen() {
                                 {[1, 2, 3, 4, 5].map((level) => (
                                     <Ionicons
                                         key={level}
-                                        name={level <= interaction.quality ? 'star' : 'star-outline'}
+                                        name={level <= interaction.sentiment ? 'star' : 'star-outline'}
                                         size={16}
-                                        color={level <= interaction.quality ? Colors.warning : Colors.textTertiary}
+                                        color={level <= interaction.sentiment ? Colors.warning : Colors.textTertiary}
                                     />
                                 ))}
                             </View>

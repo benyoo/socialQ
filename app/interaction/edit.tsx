@@ -13,7 +13,7 @@ import {
     View,
 } from 'react-native';
 import { PeoplePicker } from '../../src/components/PeoplePicker';
-import { INTERACTION_TYPE_META, QUALITY_LABELS } from '../../src/constants';
+import { INTERACTION_TYPE_META, SENTIMENT_LABELS } from '../../src/constants';
 import { useInteractionsStore } from '../../src/stores';
 import { BorderRadius, Colors, FontSize, FontWeight, Spacing } from '../../src/theme/tokens';
 import type { InteractionType, QualityRating } from '../../src/types';
@@ -34,7 +34,7 @@ export default function EditInteractionScreen() {
     const [title, setTitle] = useState(interaction?.title ?? '');
     const [notes, setNotes] = useState(interaction?.notes ?? '');
     const [type, setType] = useState<InteractionType>(interaction?.type ?? 'in-person');
-    const [quality, setQuality] = useState<QualityRating>(interaction?.quality ?? 3);
+    const [sentiment, setSentiment] = useState<QualityRating>(interaction?.sentiment ?? 3);
     const [location, setLocation] = useState(interaction?.location ?? '');
     const [personIds, setPersonIds] = useState<string[]>(
         (interaction as any)?.people?.map((p: any) => p.id) ?? []
@@ -66,7 +66,7 @@ export default function EditInteractionScreen() {
             title: title.trim(),
             notes: notes.trim() || undefined,
             type,
-            quality,
+            sentiment,
             location: location.trim() || undefined,
             person_ids: personIds,
         });
@@ -146,20 +146,20 @@ export default function EditInteractionScreen() {
                     </View>
                 </ScrollView>
 
-                {/* Quality */}
-                <Text style={styles.label}>Quality</Text>
+                {/* Sentiment */}
+                <Text style={styles.label}>Sentiment</Text>
                 <View style={styles.qualityRow}>
                     {([1, 2, 3, 4, 5] as QualityRating[]).map((q) => (
-                        <Pressable key={q} style={styles.qualityItem} onPress={() => setQuality(q)}>
+                        <Pressable key={q} style={styles.qualityItem} onPress={() => setSentiment(q)}>
                             <Ionicons
-                                name={q <= quality ? 'star' : 'star-outline'}
+                                name={q <= sentiment ? 'star' : 'star-outline'}
                                 size={28}
-                                color={q <= quality ? Colors.warning : Colors.textTertiary}
+                                color={q <= sentiment ? Colors.warning : Colors.textTertiary}
                             />
                         </Pressable>
                     ))}
                     <Text style={styles.qualityLabel}>
-                        {QUALITY_LABELS[quality]}
+                        {SENTIMENT_LABELS[sentiment]}
                     </Text>
                 </View>
 

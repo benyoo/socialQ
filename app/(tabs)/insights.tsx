@@ -58,7 +58,7 @@ export default function InsightsScreen() {
         const avgQuality =
             interactions.length > 0
                 ? (
-                    interactions.reduce((sum, i) => sum + i.quality, 0) /
+                    interactions.reduce((sum, i) => sum + i.sentiment, 0) /
                     interactions.length
                 ).toFixed(1)
                 : '—';
@@ -150,7 +150,7 @@ export default function InsightsScreen() {
                 />
                 <StatCard
                     icon="star"
-                    label="Avg Quality"
+                    label="Avg Sentiment"
                     value={stats.avgQuality}
                     color={Colors.warning}
                 />

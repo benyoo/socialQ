@@ -30,12 +30,12 @@ export const RELATIONSHIP_TYPE_META: Record<
     other: { label: 'Other', icon: 'ellipsis-horizontal', color: '#9090A8' },
 };
 
-export const QUALITY_LABELS: Record<number, string> = {
-    1: 'Poor',
-    2: 'Below Average',
+export const SENTIMENT_LABELS: Record<number, string> = {
+    1: 'Very Negative',
+    2: 'Negative',
     3: 'Neutral',
-    4: 'Good',
-    5: 'Excellent',
+    4: 'Positive',
+    5: 'Very Positive',
 };
 
 export const CLOSENESS_LABELS: Record<number, string> = {

@@ -1,7 +1,7 @@
 // Log Interaction — single natural language input with smart extraction
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     Alert,
     Pressable,
@@ -13,7 +13,8 @@ import {
 } from 'react-native';
 import { PeoplePicker } from '../../src/components/PeoplePicker';
 import { Avatar } from '../../src/components/ui';
-import { INTERACTION_TYPE_META, QUALITY_LABELS } from '../../src/constants';
+import { INTERACTION_TYPE_META, SENTIMENT_LABELS } from '../../src/constants';
+import { computeSentiment } from '../../src/utils/sentiment';
 import { parseLogEntry } from '../../src/services/logParser';
 import { useInteractionsStore, usePeopleStore } from '../../src/stores';
 import { BorderRadius, Colors, FontSize, FontWeight, Spacing } from '../../src/theme/tokens';
@@ -31,7 +32,6 @@ export default function NewInteractionScreen() {
     const quickAddPerson = usePeopleStore((s) => s.quickAddPerson);
 
     const [text, setText] = useState('');
-    const [quality, setQuality] = useState<QualityRating>(3);
     const [typeOverride, setTypeOverride] = useState<InteractionType | null>(null);
     const [addedPeopleIds, setAddedPeopleIds] = useState<string[]>([]);
     const [resolvedAmbiguous, setResolvedAmbiguous] = useState<Record<string, string>>({}); // name -> chosen person id
@@ -42,6 +42,16 @@ export default function NewInteractionScreen() {
         () => parseLogEntry(text, people),
         [text, people]
     );
+
+    // Auto-compute sentiment from text; user can override by tapping a star
+    const computedSentiment = useMemo(() => computeSentiment(text), [text]);
+    const [sentimentOverride, setSentimentOverride] = useState<QualityRating | null>(null);
+    const sentiment = sentimentOverride ?? computedSentiment;
+
+    // Reset override when text is cleared
+    useEffect(() => {
+        if (!text.trim()) setSentimentOverride(null);
+    }, [text]);
 
     // Effective type: user override > parser inference > default
     const effectiveType = typeOverride ?? parsed.inferredType ?? 'in-person';
@@ -100,7 +110,7 @@ export default function NewInteractionScreen() {
                 type: effectiveType,
                 title: parsed.title,
                 notes: parsed.notes,
-                quality,
+                sentiment,
                 location: parsed.location ?? undefined,
                 occurred_at: parsed.occurredAt.toISOString(),
                 person_ids: finalPersonIds,
@@ -340,18 +350,18 @@ export default function NewInteractionScreen() {
                 </>
             )}
 
-            {/* Quality rating */}
+            {/* Sentiment rating */}
             {hasContent && (
                 <>
-                    <Text style={styles.sectionLabel}>How was it?</Text>
+                    <Text style={styles.sectionLabel}>Sentiment</Text>
                     <View style={styles.qualityRow}>
                         {([1, 2, 3, 4, 5] as QualityRating[]).map((level) => {
-                            const isActive = quality >= level;
+                            const isActive = sentiment >= level;
                             return (
                                 <Pressable
                                     key={level}
                                     style={styles.qualityItem}
-                                    onPress={() => setQuality(level)}
+                                    onPress={() => setSentimentOverride(level)}
                                 >
                                     <Ionicons
                                         name={isActive ? 'star' : 'star-outline'}
@@ -361,7 +371,8 @@ export default function NewInteractionScreen() {
                                 </Pressable>
                             );
                         })}
-                        <Text style={styles.qualityLabel}>{QUALITY_LABELS[quality]}</Text>
+                        <Text style={styles.qualityLabel}>{SENTIMENT_LABELS[sentiment]}</Text>
+                        {!sentimentOverride && <Text style={styles.autoTag}>auto</Text>}
                     </View>
                 </>
             )}
@@ -517,6 +528,12 @@ const styles = StyleSheet.create({
         color: Colors.textSecondary,
         fontSize: FontSize.sm,
         marginLeft: Spacing.sm,
+    },
+    autoTag: {
+        color: Colors.primary,
+        fontSize: FontSize.xs,
+        fontWeight: FontWeight.medium,
+        marginLeft: Spacing.xs,
     },
     submitButton: {
         marginTop: Spacing.md,

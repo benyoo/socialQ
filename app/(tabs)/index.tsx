@@ -21,12 +21,18 @@ import type { InteractionType, InteractionWithPeople } from '../../src/types';
 // ─── Filter types ────────────────────────────────────────
 
 type DateRange = 'all' | 'today' | 'week' | 'month';
+type SortBy = 'occurred_at' | 'created_at';
 
 const DATE_RANGE_OPTIONS: { value: DateRange; label: string }[] = [
   { value: 'all', label: 'All Time' },
   { value: 'today', label: 'Today' },
   { value: 'week', label: 'This Week' },
   { value: 'month', label: 'This Month' },
+];
+
+const SORT_OPTIONS: { value: SortBy; label: string }[] = [
+  { value: 'occurred_at', label: 'When happened' },
+  { value: 'created_at', label: 'Date logged' },
 ];
 
 const TYPE_FILTER_OPTIONS: (InteractionType | 'all')[] = [
@@ -136,7 +142,7 @@ function InteractionCard({ interaction }: { interaction: InteractionWithPeople }
             key={level}
             style={[
               styles.qualityDot,
-              level <= interaction.quality && styles.qualityDotActive,
+              level <= interaction.sentiment && styles.qualityDotActive,
             ]}
           />
         ))}
@@ -152,10 +158,11 @@ export default function TimelineScreen() {
   const { interactions, isLoading, fetchInteractions } = useInteractionsStore();
   const { fetchPeople } = usePeopleStore();
 
-  // Filter state
+  // Filter + sort state
   const [searchQuery, setSearchQuery] = useState('');
   const [activeType, setActiveType] = useState<InteractionType | 'all'>('all');
   const [activeDateRange, setActiveDateRange] = useState<DateRange>('all');
+  const [sortBy, setSortBy] = useState<SortBy>('occurred_at');
 
   useEffect(() => {
     fetchInteractions();
@@ -190,8 +197,10 @@ export default function TimelineScreen() {
       );
     }
 
-    return result;
-  }, [interactions, searchQuery, activeType, activeDateRange]);
+    return [...result].sort(
+      (a, b) => new Date(b[sortBy]).getTime() - new Date(a[sortBy]).getTime()
+    );
+  }, [interactions, searchQuery, activeType, activeDateRange, sortBy]);
 
   const hasActiveFilters = searchQuery || activeType !== 'all' || activeDateRange !== 'all';
 
@@ -278,6 +287,26 @@ export default function TimelineScreen() {
           );
         })}
       </ScrollView>
+
+      {/* Sort toggle */}
+      <View style={styles.sortRow}>
+        <Ionicons name="swap-vertical" size={13} color={Colors.textTertiary} />
+        <Text style={styles.sortLabel}>Sort:</Text>
+        {SORT_OPTIONS.map((opt) => {
+          const isActive = sortBy === opt.value;
+          return (
+            <Pressable
+              key={opt.value}
+              style={[styles.sortChip, isActive && styles.sortChipActive]}
+              onPress={() => setSortBy(opt.value)}
+            >
+              <Text style={[styles.sortChipText, isActive && styles.sortChipTextActive]}>
+                {opt.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
 
       {/* Interactions list */}
       <FlatList
@@ -367,7 +396,7 @@ const styles = StyleSheet.create({
   filterList: {
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.sm,
-    paddingBottom: 2,
+    paddingBottom: Spacing.lg,
     gap: Spacing.sm,
   },
   filterChip: {
@@ -389,8 +418,8 @@ const styles = StyleSheet.create({
   // Date range chips
   dateFilterList: {
     paddingHorizontal: Spacing.lg,
-    paddingTop: 2,
-    paddingBottom: Spacing.sm,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.lg,
     gap: Spacing.sm,
   },
   dateChip: {
@@ -413,6 +442,41 @@ const styles = StyleSheet.create({
   },
   dateChipTextActive: {
     color: Colors.accent,
+  },
+  // Sort row
+  sortRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.sm,
+  },
+  sortLabel: {
+    color: Colors.textTertiary,
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.medium,
+  },
+  sortChip: {
+    height: 24,
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.surfaceBorder,
+  },
+  sortChipActive: {
+    backgroundColor: `${Colors.primary}20`,
+    borderColor: Colors.primary,
+  },
+  sortChipText: {
+    color: Colors.textSecondary,
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.medium,
+  },
+  sortChipTextActive: {
+    color: Colors.primary,
   },
   // List
   listContent: {

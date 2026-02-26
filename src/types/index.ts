@@ -51,7 +51,7 @@ export interface Interaction {
     type: InteractionType;
     title: string;
     notes?: string;
-    quality: QualityRating;
+    sentiment: QualityRating;
     location?: string;
     occurred_at: string; // ISO datetime
     duration_minutes?: number;
@@ -116,7 +116,7 @@ export interface InteractionFormData {
     type: InteractionType;
     title: string;
     notes?: string;
-    quality: QualityRating;
+    sentiment: QualityRating;
     location?: string;
     occurred_at: string;
     duration_minutes?: number;
