@@ -6,6 +6,10 @@ import { Platform } from 'react-native';
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
 
+// DEBUG — remove after confirming env vars load
+console.log('[Supabase] URL:', supabaseUrl || 'EMPTY ⚠️');
+console.log('[Supabase] Key:', supabaseAnonKey ? `SET (${supabaseAnonKey.length} chars)` : 'EMPTY ⚠️');
+
 // Custom storage adapter for Supabase auth
 // Uses SecureStore on native, localStorage on web
 // Guard localStorage with typeof check for SSR safety (Expo Router renders on Node.js first)

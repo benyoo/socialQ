@@ -3,9 +3,9 @@
 
 export const Colors = {
     // Brand
-    primary: '#6C5CE7',
+    primary: '#955eee',
     primaryLight: '#A29BFE',
-    primaryDark: '#5A4BD1',
+    primaryDark: '#955eee',
 
     // Accent
     accent: '#00D2FF',
@@ -28,16 +28,16 @@ export const Colors = {
     email: '#FFD740',
 
     // Backgrounds
-    background: '#0A0A0F',
-    backgroundElevated: '#13131A',
-    backgroundCard: '#1A1A24',
-    backgroundCardHover: '#22222E',
-    backgroundModal: '#13131AEE',
+    background: '#202020',
+    backgroundElevated: '#131313',
+    backgroundCard: '#272727',
+    backgroundCardHover: '#2b2b2b',
+    backgroundModal: '#1a1a1aee',
 
     // Surfaces
-    surface: '#1E1E2A',
+    surface: '#252525',
     surfaceLight: '#2A2A38',
-    surfaceBorder: '#2E2E3E',
+    surfaceBorder: '#1b1b1b',
 
     // Text
     textPrimary: '#F0F0F5',
