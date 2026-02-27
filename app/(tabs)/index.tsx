@@ -31,8 +31,8 @@ const DATE_RANGE_OPTIONS: { value: DateRange; label: string }[] = [
 ];
 
 const SORT_OPTIONS: { value: SortBy; label: string }[] = [
-  { value: 'occurred_at', label: 'When happened' },
-  { value: 'created_at', label: 'Date logged' },
+  { value: 'occurred_at', label: 'Occured At' },
+  { value: 'created_at', label: 'Logged At' },
 ];
 
 const TYPE_FILTER_OPTIONS: (InteractionType | 'all')[] = [
@@ -228,7 +228,7 @@ export default function TimelineScreen() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        style={{ flexGrow: 0 }}
+        style={{ flexShrink: 0 }}
         contentContainerStyle={styles.filterList}
       >
         {TYPE_FILTER_OPTIONS.map((item) => {
@@ -264,7 +264,7 @@ export default function TimelineScreen() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        style={{ flexGrow: 0 }}
+        style={{ flexShrink: 0 }}
         contentContainerStyle={styles.dateFilterList}
       >
         {DATE_RANGE_OPTIONS.map((item) => {
@@ -396,7 +396,7 @@ const styles = StyleSheet.create({
   filterList: {
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.sm,
-    paddingBottom: Spacing.lg,
+    paddingBottom: Spacing.sm,
     gap: Spacing.sm,
   },
   filterChip: {
@@ -419,7 +419,7 @@ const styles = StyleSheet.create({
   dateFilterList: {
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.sm,
-    paddingBottom: Spacing.lg,
+    paddingBottom: Spacing.sm,
     gap: Spacing.sm,
   },
   dateChip: {

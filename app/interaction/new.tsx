@@ -34,6 +34,7 @@ export default function NewInteractionScreen() {
     const [text, setText] = useState('');
     const [typeOverride, setTypeOverride] = useState<InteractionType | null>(null);
     const [addedPeopleIds, setAddedPeopleIds] = useState<string[]>([]);
+    const [removedMatchedIds, setRemovedMatchedIds] = useState<string[]>([]); // auto-detected people the user dismissed
     const [resolvedAmbiguous, setResolvedAmbiguous] = useState<Record<string, string>>({}); // name -> chosen person id
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -48,21 +49,28 @@ export default function NewInteractionScreen() {
     const [sentimentOverride, setSentimentOverride] = useState<QualityRating | null>(null);
     const sentiment = sentimentOverride ?? computedSentiment;
 
-    // Reset override when text is cleared
+    // Reset overrides when text is cleared
     useEffect(() => {
-        if (!text.trim()) setSentimentOverride(null);
+        if (!text.trim()) {
+            setSentimentOverride(null);
+            setRemovedMatchedIds([]);
+        }
     }, [text]);
 
     // Effective type: user override > parser inference > default
     const effectiveType = typeOverride ?? parsed.inferredType ?? 'in-person';
 
-    // All person IDs: matched from text + manually added + resolved ambiguous
+    // All person IDs: matched from text (minus dismissed) + manually added + resolved ambiguous
     const allPersonIds = useMemo(() => {
-        const ids = new Set(parsed.matchedPeople.map((p) => p.id));
+        const ids = new Set(
+            parsed.matchedPeople
+                .filter((p) => !removedMatchedIds.includes(p.id))
+                .map((p) => p.id)
+        );
         addedPeopleIds.forEach((id) => ids.add(id));
         Object.values(resolvedAmbiguous).forEach((id) => ids.add(id));
         return [...ids];
-    }, [parsed.matchedPeople, addedPeopleIds, resolvedAmbiguous]);
+    }, [parsed.matchedPeople, addedPeopleIds, resolvedAmbiguous, removedMatchedIds]);
 
     const handleAddUnmatchedPerson = useCallback(async (name: string) => {
         const person = await quickAddPerson(name);
@@ -71,8 +79,8 @@ export default function NewInteractionScreen() {
         }
     }, [quickAddPerson]);
 
-    const handleRemovePerson = useCallback((personId: string) => {
-        setAddedPeopleIds((prev) => prev.filter((id) => id !== personId));
+    const handleRemoveMatchedPerson = useCallback((personId: string) => {
+        setRemovedMatchedIds((prev) => [...prev, personId]);
     }, []);
 
     const handleResolveAmbiguous = useCallback((firstName: string, personId: string) => {
@@ -160,17 +168,24 @@ export default function NewInteractionScreen() {
                 <View style={styles.extractionPreview}>
                     <Text style={styles.previewLabel}>Detected</Text>
 
-                    {/* Matched people */}
-                    {parsed.matchedPeople.length > 0 && (
+                    {/* Matched people — tap × to dismiss */}
+                    {parsed.matchedPeople.filter((p) => !removedMatchedIds.includes(p.id)).length > 0 && (
                         <View style={styles.extractionRow}>
                             <Ionicons name="people" size={16} color={Colors.primary} />
                             <View style={styles.chipRow}>
-                                {parsed.matchedPeople.map((person) => (
-                                    <View key={person.id} style={styles.personChip}>
-                                        <Avatar name={person.name} size={20} />
-                                        <Text style={styles.personChipText}>{person.name}</Text>
-                                    </View>
-                                ))}
+                                {parsed.matchedPeople
+                                    .filter((p) => !removedMatchedIds.includes(p.id))
+                                    .map((person) => (
+                                        <Pressable
+                                            key={person.id}
+                                            style={styles.personChip}
+                                            onPress={() => handleRemoveMatchedPerson(person.id)}
+                                        >
+                                            <Avatar name={person.name} size={20} />
+                                            <Text style={styles.personChipText}>{person.name}</Text>
+                                            <Ionicons name="close-circle" size={14} color={Colors.primary} />
+                                        </Pressable>
+                                    ))}
                             </View>
                         </View>
                     )}
@@ -296,10 +311,14 @@ export default function NewInteractionScreen() {
                     <PeoplePicker
                         selectedIds={allPersonIds}
                         onToggle={(personId) => {
-                            if (addedPeopleIds.includes(personId)) {
-                                handleRemovePerson(personId);
+                            if (allPersonIds.includes(personId)) {
+                                // Remove: strip from manually-added list and mark as dismissed from auto-match
+                                setAddedPeopleIds((prev) => prev.filter((id) => id !== personId));
+                                setRemovedMatchedIds((prev) => [...prev, personId]);
                             } else {
+                                // Add: push to manually-added list, un-dismiss if previously removed
                                 setAddedPeopleIds((prev) => [...prev, personId]);
+                                setRemovedMatchedIds((prev) => prev.filter((id) => id !== personId));
                             }
                         }}
                     />
